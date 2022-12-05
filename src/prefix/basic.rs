@@ -8,6 +8,8 @@ use base64::decode_config;
 use core::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+/// The simplest form of a self certifying identifier. The derivation indicates cryptographic suite
+/// which allows inference of prefix length.
 #[derive(Debug, Clone)]
 pub struct BasicPrefix {
     pub derivation: Basic,
@@ -22,6 +24,9 @@ impl BasicPrefix {
         }
     }
 
+    // TODO why is this using a self signing prefix for a signature?
+    //  Should there be a more precise data structure used for signing or is [SelfSigningPrefix]
+    //  really the best option here?
     pub fn verify(&self, data: &[u8], signature: &SelfSigningPrefix) -> Result<bool, Error> {
         verify(data, self, signature)
     }
@@ -33,6 +38,7 @@ impl PartialEq for BasicPrefix {
     }
 }
 
+/// The primary parsing function for Base64 string representations of basic self-certifying identifiers.
 impl FromStr for BasicPrefix {
     type Err = Error;
 
@@ -132,8 +138,8 @@ fn to_from_string() {
     let from_str = BasicPrefix::from_str(&string);
 
     assert!(from_str.is_ok());
-    let deser = from_str.unwrap();
-    assert_eq!(bp, deser);
+    let deserialized = from_str.unwrap();
+    assert_eq!(bp, deserialized);
 
-    assert!(deser.verify(message, &sig).unwrap());
+    assert!(deserialized.verify(message, &sig).unwrap());
 }

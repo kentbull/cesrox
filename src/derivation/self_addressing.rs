@@ -14,7 +14,7 @@ use sha3::{Sha3_256, Sha3_512};
 /// Self Addressing Derivations
 ///
 /// Self-addressing is a digest/hash of some inception data (2.3.2)
-///   Delegated Self-addressing uses the Dip event data for the inception data (2.3.4)
+///   Delegated Self-addressing uses the "dip" event data for the inception data (2.3.4)
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub enum SelfAddressing {
     Blake3_256,

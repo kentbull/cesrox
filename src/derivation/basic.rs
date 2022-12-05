@@ -3,13 +3,16 @@ use crate::{error::Error, keys::PublicKey, prefix::BasicPrefix};
 use core::str::FromStr;
 use serde::{Deserialize, Serialize};
 
-/// Basic Derivations
+/// Basic derivation code types for both transferable and non-transferable identifiers.
+/// "-NT" suffixes indicate non-transferable identifier derivation code types.
 ///
 /// Basic prefix derivation is just a public key (2.3.1)
 #[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize, Hash)]
 pub enum Basic {
     ECDSAsecp256k1NT,
     ECDSAsecp256k1,
+
+    /// An Ed25519 keypair for a non-transferable identifier (NT)
     Ed25519NT,
     Ed25519,
     Ed448NT,
@@ -56,6 +59,9 @@ impl DerivationCode for Basic {
     }
 }
 
+/// Maps basic identifier data type strings to entries in the [master code table].
+///
+/// [master code table]: https://weboftrust.github.io/ietf-cesr/draft-ssmith-cesr.html#name-master-code-table
 impl FromStr for Basic {
     type Err = Error;
 

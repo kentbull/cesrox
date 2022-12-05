@@ -4,7 +4,10 @@ use core::str::FromStr;
 
 /// Self Signing Derivations
 ///
-/// A self signing prefix derivation outputs a signature as its derivative (2.3.5)
+/// A self signing prefix derivation outputs a signature as its derivative.
+/// See section 2.3.5 of the [KERI whitepaper]
+///
+/// [KERI white paper]: https://github.com/SmithSamuelM/Papers/blob/master/whitepapers/KERI_WP_2.x.web.pdf
 #[derive(Debug, PartialEq, Clone, Copy, Hash)]
 pub enum SelfSigning {
     Ed25519Sha512,
@@ -43,6 +46,9 @@ impl DerivationCode for SelfSigning {
     }
 }
 
+/// Maps self signing identifier data type strings to entries in the [master code table].
+///
+/// [master code table]: https://weboftrust.github.io/ietf-cesr/draft-ssmith-cesr.html#name-master-code-table
 impl FromStr for SelfSigning {
     type Err = Error;
 

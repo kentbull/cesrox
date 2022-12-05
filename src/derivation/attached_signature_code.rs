@@ -33,7 +33,7 @@ impl DerivationCode for AttachedSignatureCode {
         }
     }
 
-    // TODO, this will only work with indicies up to 63
+    // TODO, this will only work with indices up to 63
     fn to_str(&self) -> String {
         [
             match self.code {

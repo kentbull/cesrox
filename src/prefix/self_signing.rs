@@ -7,6 +7,11 @@ use base64::decode_config;
 use core::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+// TODO should this be renamed to self-signing identifier?
+// TODO #2 handle the condition from the whitepaper where
+//   "If instead of a content digest (hash), a signature of the inception data is used in the the
+//    prefix then no attached signature is required."
+/// A [SelfSigningPrefix] must have an attached signature for verification.
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub struct SelfSigningPrefix {
     pub derivation: SelfSigning,

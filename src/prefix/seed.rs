@@ -8,6 +8,12 @@ use core::str::FromStr;
 use ed25519_dalek::SecretKey;
 use k256::ecdsa::{SigningKey, VerifyingKey};
 
+// TODO rename this from [SeedPrefix] to KeySeed
+/// A seed in this context is a signing key also known as a private key.
+/// The [`Vec<u8>`] is a byte vector of the private key value.<br>
+/// Each of these seed types is found in the [master code table].<br>
+///
+/// [master code table]: https://weboftrust.github.io/ietf-cesr/draft-ssmith-cesr.html#name-master-code-table
 #[derive(Debug, PartialEq, Clone)]
 pub enum SeedPrefix {
     RandomSeed128(Vec<u8>),
@@ -17,6 +23,7 @@ pub enum SeedPrefix {
 }
 
 impl SeedPrefix {
+    /// Extracts from the byte vector the private key and the public key pair.
     pub fn derive_key_pair(&self) -> Result<(PublicKey, PrivateKey), Error> {
         match self {
             Self::RandomSeed256Ed25519(seed) => {
@@ -38,8 +45,19 @@ impl SeedPrefix {
     }
 }
 
+/// Parses a seed from a Base64 encoded string.<br>
+/// Maps the seed types from the [master code table] to raw types.<br>
+///
+/// [master code table]: https://weboftrust.github.io/ietf-cesr/draft-ssmith-cesr.html#name-master-code-table
 impl FromStr for SeedPrefix {
     type Err = Error;
+
+    // TODO KB ? 12/03/22 Is there a problem with base64 decoding strings here?
+    //   Is it making more difficult the T>R>B>R>T round trip?
+    // TODO KB ? 12/03/22 Is there a good way to specify the decode_config base64:URL_SAFE
+    //   once in a config module and then reuse that everywhere in the program so it only has to be
+    //   declared once?
+    /// The parsing function for seeds supporting Base64 encodings.<br>
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match &s[..1] {
@@ -61,12 +79,12 @@ impl FromStr for SeedPrefix {
                     base64::URL_SAFE,
                 )?)),
                 _ => Err(Error::DeserializeError(format!(
-                    "Unknown seed prefix cod: {}",
+                    "Unknown seed prefix code: {}",
                     s
                 ))),
             },
             _ => Err(Error::DeserializeError(format!(
-                "Unknown seed prefix cod: {}",
+                "Unknown seed prefix code: {}",
                 s
             ))),
         }
@@ -96,6 +114,7 @@ impl Prefix for SeedPrefix {
 fn test_derive_keypair() -> Result<(), Error> {
     use base64::URL_SAFE;
 
+    // TODO fix the encoding order like in THC/keriox/PR#38: https://github.com/THCLab/keriox/pull/38/files
     // taken from KERIPY: tests/core/test_eventing.py#1512
     let seeds = vec![
         "ArwXoACJgOleVZ2PY7kXn7rA0II0mHYDhc6WrBH8fDAc",

@@ -18,8 +18,22 @@ pub use seed::SeedPrefix;
 pub use self_addressing::SelfAddressingPrefix;
 pub use self_signing::SelfSigningPrefix;
 
-pub trait Prefix: FromStr<Err = Error> {
+
+// TODO should this be called CESRType rather than Prefix since it is applicable to any CESR type?
+/// A CESR supported data type has a registered entry in the [master code table](https://weboftrust.github.io/ietf-cesr/draft-ssmith-cesr.html#name-master-code-table).
+/// This derivation code of the prefix allows inference of both the data type and the length of the
+/// data type.
+///
+/// See section 2.2.1 of the [KERI white paper](https://github.com/SmithSamuelM/Papers/blob/master/whitepapers/KERI_WP_2.x.web.pdf)
+/// for a complete description
+pub trait Prefix: FromStr<Err=Error> {
+    /// The raw bytes of the cryptographic primitive.
+    /// This is not the Base64 encoded version.
     fn derivative(&self) -> Vec<u8>;
+
+    /// Returns the set of prefixed characters at the front of a CESR supported data type.
+    /// This indicates both the cryptographic signing scheme used by the data type, in the case of a
+    /// cryptographic primitive, as well as the length of the data type.
     fn derivation_code(&self) -> String;
     fn to_str(&self) -> String {
         // empty data cannot be prefixed!
@@ -34,6 +48,10 @@ pub trait Prefix: FromStr<Err = Error> {
     }
 }
 
+/// An IdentifierPrefix is a unique fingerprint of a public key in a self-certifying identifier.
+/// A Prefix has two parts including a derivation code and a derivation (labelled a "deriviative" here).
+///
+/// See section 2.1 Basic Concept of the KERI Whitepaper.
 #[derive(Debug, PartialEq, Clone)]
 pub enum IdentifierPrefix {
     Basic(BasicPrefix),
@@ -41,6 +59,7 @@ pub enum IdentifierPrefix {
     SelfSigning(SelfSigningPrefix),
 }
 
+/// The [FromStr] trait is the primary parsing function for String-encoded KERI Identifiers
 impl FromStr for IdentifierPrefix {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -60,6 +79,7 @@ impl FromStr for IdentifierPrefix {
     }
 }
 
+/// Maps each [IdentifierPrefix]] type's derivation and derivation code to the [Prefix] impl.
 impl Prefix for IdentifierPrefix {
     fn derivative(&self) -> Vec<u8> {
         match self {
@@ -80,18 +100,18 @@ impl Prefix for IdentifierPrefix {
 /// Serde compatible Serialize
 impl Serialize for IdentifierPrefix {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+        where
+            S: Serializer,
     {
         serializer.serialize_str(&self.to_str())
     }
 }
 
-/// Serde compatible Deserialize
+/// Serde compatible Deserialize. Expects a String and hands it off to from_str
 impl<'de> Deserialize<'de> for IdentifierPrefix {
     fn deserialize<D>(deserializer: D) -> Result<IdentifierPrefix, D::Error>
-    where
-        D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
 
@@ -99,12 +119,15 @@ impl<'de> Deserialize<'de> for IdentifierPrefix {
     }
 }
 
+/// The [SelfAddressingPrefix] is a reasonable default identifier prefix.
 impl Default for IdentifierPrefix {
     fn default() -> Self {
         IdentifierPrefix::SelfAddressing(SelfAddressingPrefix::default())
     }
 }
 
+// TODO should the key be passed in directly along with the derivation type?
+//   Is it bad form to use prefixes where another data structure would express clear intent?
 /// Verify
 ///
 /// Uses a public key to verify a signature against some data, with
@@ -133,7 +156,8 @@ pub fn verify(
 
 /// Derive
 ///
-/// Derives the Basic Prefix corresponding to the given Seed Prefix
+/// Derives either transferable or non-transferable identifier prefixes based on
+/// the given random Seed Prefix.
 pub fn derive(seed: &SeedPrefix, transferable: bool) -> Result<BasicPrefix, Error> {
     let (pk, _) = seed.derive_key_pair()?;
     Ok(BasicPrefix::new(
@@ -253,8 +277,8 @@ mod tests {
         /// Helper function that checks whether all codes fulfill the condition
         /// given by predicate `pred`.
         fn all_codes<F>(codes: Vec<(&str, usize)>, pred: F) -> Result<(), Error>
-        where
-            F: Fn(IdentifierPrefix) -> bool,
+            where
+                F: Fn(IdentifierPrefix) -> bool,
         {
             for (code, length) in codes {
                 let pref: IdentifierPrefix =
@@ -270,7 +294,10 @@ mod tests {
         // Allowed string lengths for respective basic codes.
         let allowed_lengths = vec![43, 43, 43, 75, 47, 47, 76, 76].into_iter();
         let is_basic = |identifier| matches!(&identifier, IdentifierPrefix::Basic(_));
-        all_codes(basic_codes.zip(allowed_lengths).collect(), is_basic)?;
+        all_codes(
+            basic_codes.zip(allowed_lengths).collect(),
+            is_basic,
+        )?;
 
         // All codes that are mapped to `SelfAddressingPrefix`.
         let self_adressing_codes =
@@ -299,7 +326,7 @@ mod tests {
 
     #[test]
     fn prefix_serialization() -> Result<(), Error> {
-        // The lengths of respective vectors are choosen according to [0, Section 14.2]
+        // The lengths of respective vectors are chosen according to [0, Section 14.2]
         // [0]: https://github.com/SmithSamuelM/Papers/raw/master/whitepapers/KERI_WP_2.x.web.pdf
 
         // Test BasicPrefix serialization.
@@ -310,9 +337,9 @@ mod tests {
                     ed25519_dalek::PublicKey::from_bytes(&[0; 32])?
                         .to_bytes()
                         .to_vec()
-                )
+                ),
             )
-            .to_str(),
+                .to_str(),
             ["B".to_string(), "A".repeat(43)].join("")
         );
         assert_eq!(
@@ -322,9 +349,9 @@ mod tests {
                     ed25519_dalek::PublicKey::from_bytes(&[0; 32])?
                         .to_bytes()
                         .to_vec()
-                )
+                ),
             )
-            .to_str(),
+                .to_str(),
             ["C".to_string(), "A".repeat(43)].join("")
         );
         assert_eq!(
@@ -334,9 +361,9 @@ mod tests {
                     ed25519_dalek::PublicKey::from_bytes(&[0; 32])?
                         .to_bytes()
                         .to_vec()
-                )
+                ),
             )
-            .to_str(),
+                .to_str(),
             ["D".to_string(), "A".repeat(43)].join("")
         );
         assert_eq!(

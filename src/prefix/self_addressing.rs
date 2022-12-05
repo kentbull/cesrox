@@ -5,6 +5,7 @@ use base64::decode_config;
 use core::{fmt, str::FromStr};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+// TODO should this be renamed to SelfAddressingIdentifier or SelfAddressingDatatype?
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub struct SelfAddressingPrefix {
     pub derivation: SelfAddressing,
@@ -19,6 +20,7 @@ impl SelfAddressingPrefix {
         }
     }
 
+    /// Checks whether a computed digest of the serialized data matches the original digest.
     pub fn verify_binding(&self, sed: &[u8]) -> bool {
         self.derivation.digest(sed) == self.digest
     }
